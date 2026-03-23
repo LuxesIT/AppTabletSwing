@@ -38,7 +38,7 @@ class Panel {
         int btnHeight = (int) (screenHeight * 0.3);
 
         //adding an image
-        URL imageUrl = Panel.class.getResource("/images/placeholder.png");
+        URL imageUrl = Panel.class.getResource("/images/logo_luxes.png");
         if (imageUrl != null) {
             img = new ImageIcon(imageUrl);
             // Use your icon here
@@ -72,7 +72,7 @@ class Panel {
 
         topBar.add(backBtn);
 
-        topBar.setVisible(true); //uncomment to test topbar
+        //topBar.setVisible(true); //uncomment to test topbar
 
         // JBUTTON1
         JButton button1 = new JButton(img);
@@ -86,7 +86,7 @@ class Panel {
         button1.addActionListener(e -> {
             try {
                 // 1. Launch the Linux program
-                ProcessBuilder pb = new ProcessBuilder("gio", "open", "/home/linaro/Desktop/maestro.jar");
+                ProcessBuilder pb = new ProcessBuilder("java -jar ~/home/linaro/Desktop/maestro_patched_v4.jar");
                 currentProcess.set(pb.start());
 
                 // 2. Hide the main menu and show the overlay
@@ -119,7 +119,7 @@ class Panel {
         button2.addActionListener(e -> {
             try {
                 // 1. Launch the Linux program
-                ProcessBuilder pb = new ProcessBuilder("gio", "open", "/home/linaro/Desktop/web.desktop");
+                ProcessBuilder pb = new ProcessBuilder("gio open ~/home/linaro/Desktop/web.desktop");
                 currentProcess.set(pb.start());
 
                 // 2. Hide the main menu and show the overlay
@@ -158,7 +158,7 @@ class Panel {
         // making the frame visible
         frame.setExtendedState(Frame.MAXIMIZED_BOTH); //extends to all of the screen
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); //exits the program when window is closed
-        //frame.setVisible(true); //comment to test topbar
+        frame.setVisible(true); //comment to test topbar
     }
 
     private static void mouseAdapter(JButton button) {
