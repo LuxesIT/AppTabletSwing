@@ -67,7 +67,14 @@ class Panel {
             topBar.setVisible(false);
 
             // Optional: Kill the current running program when returning
-            if (currentProcess.get() != null) currentProcess.get().destroy();
+            if (currentProcess.get() != null){
+                currentProcess.get().destroy();
+                try {
+                    currentProcess.get().waitFor();
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
         });
 
         topBar.add(backBtn);
