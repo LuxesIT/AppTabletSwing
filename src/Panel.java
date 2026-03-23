@@ -120,7 +120,7 @@ class Panel {
         button2.addActionListener(e -> {
             try {
                 // 1. Launch the Linux program
-                ProcessBuilder pb = new ProcessBuilder("bash", "-c", "xdg-open ~/home/linaro/Desktop/web.desktop");
+                ProcessBuilder pb = new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop");
                 currentProcess.set(pb.start());
 
                 // 2. Hide the main menu and show the overlay
