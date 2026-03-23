@@ -86,7 +86,8 @@ class Panel {
         button1.addActionListener(e -> {
             try {
                 // 1. Launch the Linux program
-                ProcessBuilder pb = new ProcessBuilder("java -jar ~/home/linaro/Desktop/maestro_patched_v4.jar");
+                // This tells Linux: "Hey Bash, please run this string for me."
+                ProcessBuilder pb = new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4.jar");
                 currentProcess.set(pb.start());
 
                 // 2. Hide the main menu and show the overlay
@@ -119,7 +120,7 @@ class Panel {
         button2.addActionListener(e -> {
             try {
                 // 1. Launch the Linux program
-                ProcessBuilder pb = new ProcessBuilder("gio open ~/home/linaro/Desktop/web.desktop");
+                ProcessBuilder pb = new ProcessBuilder("bash", "-c", "gio open ~/home/linaro/Desktop/web.desktop");
                 currentProcess.set(pb.start());
 
                 // 2. Hide the main menu and show the overlay
