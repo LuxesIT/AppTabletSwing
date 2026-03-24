@@ -253,45 +253,11 @@ class Panel {
     private static void initPersistentProcesses() {
         try {
             maestroProc.set(new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4_undecorated.jar").start());
-            String webUrl = loadWebUrl();
-            String escapedUrl = escapeForBashDoubleQuotes(webUrl);
-            webProc.set(new ProcessBuilder("bash", "-c", "xdg-open \"" + escapedUrl + "\"").start());
+            webProc.set(new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start());
 
         } catch (IOException e) {
             System.err.println("Error starting processes: " + e.getMessage());
         }
-    }
-
-    private static String loadWebUrl() {
-        URL urlResource = Panel.class.getResource("/url.txt");
-        if (urlResource == null) {
-            return "https://luxes.es";
-        }
-
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(urlResource.openStream()))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String value = line.trim();
-                if (!value.isEmpty()) {
-                    if (value.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*")) {
-                        return value;
-                    }
-                    return "https://" + value;
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error loading url.txt: " + e.getMessage());
-        }
-
-        return "https://luxes.es";
-    }
-
-    private static String escapeForBashDoubleQuotes(String value) {
-        return value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("$", "\\$")
-                .replace("`", "\\`");
     }
 
     // --- FOCUS WINDOW REESCRITO PARA ELIMINAR PARPADEOS ---
