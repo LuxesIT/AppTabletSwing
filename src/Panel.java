@@ -153,8 +153,10 @@ class Panel {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        if (line.contains("Controller Remote (v0.11) - test")) maestroReady = true;
-                        if (line.contains("Luxes - Expertos en Iluminación y soluciones a medida")) webReady = true;
+                        String lowerline = line.toLowerCase();
+
+                        if (lowerline.contains("controller remote")) maestroReady = true;
+                        if (lowerline.contains("luxes")) webReady = true;
                     }
                     Thread.sleep(500); // Esperar medio segundo antes de volver a preguntar
                 } catch (Exception e) {
