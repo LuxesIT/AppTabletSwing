@@ -1,0 +1,9 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Version=1.0
+Terminal=false
+Type=Application
+Name=Luxes - Expertos en iluminación y soluciones a medida
+Exec=/usr/lib/chromium/chromium-wrapper --profile-directory=Default --app-id=dpmofijhjajfagngkkgpfeifppbbjadc
+Icon=chrome-dpmofijhjajfagngkkgpfeifppbbjadc-Default
+StartupWMClass=crx_dpmofijhjajfagngkkgpfeifppbbjadc
