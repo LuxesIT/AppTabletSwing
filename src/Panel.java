@@ -224,7 +224,7 @@ class Panel {
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
 
-                    Thread.sleep(150);
+                    Thread.sleep(300);
 
                     if (topBar != null) {
                         Thread.sleep(300);
