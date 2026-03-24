@@ -6,7 +6,7 @@ import java.net.URL;
 import java.util.concurrent.atomic.AtomicReference;
 
 class Panel {
-    // Separate references for each process so they stay running
+    // Referencias separadas para cada proceso
     private static final AtomicReference<Process> maestroProc = new AtomicReference<>();
     private static final AtomicReference<Process> webProc = new AtomicReference<>();
 
@@ -16,8 +16,7 @@ class Panel {
         JPanel btnContainer2 = new JPanel();
         frame.setUndecorated(true);
 
-        // 1. INITIALIZE PROCESSES AT STARTUP
-        // These will start behind your main frame
+        // 1. INICIALIZAR PROCESOS (quedarán por debajo inicialmente)
         initPersistentProcesses();
 
         // --- UI SETUP ---
@@ -41,7 +40,7 @@ class Panel {
             img = new ImageIcon(imageUrl);
         }
 
-        // --- TOPBAR / NAVIGATION ---
+        // --- TOPBAR / NAVEGACIÓN ---
         JDialog topBar = new JDialog(frame, "Navigation");
         topBar.setUndecorated(true);
         topBar.setSize(110, 40);
@@ -54,17 +53,19 @@ class Panel {
         backBtn.setBorder(null);
         backBtn.setPreferredSize(new Dimension(100, 30));
         backBtn.addActionListener(e -> {
-            // Simply cover the background apps by showing the main menu
+            // NUEVO: Volver a forzar el menú por encima de todo
+            frame.setAlwaysOnTop(true);
             frame.setVisible(true);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
             topBar.setVisible(false);
 
-            // Optional: Minimize the Maestro window so it doesn't peek through
+            // Ocultar las ventanas de fondo
             focusWindow("Maestro", true);
+            focusWindow("Luxes", true);
         });
         topBar.add(backBtn);
 
-        // --- BUTTON 1: MAESTRO ---
+        // --- BOTÓN 1: MAESTRO ---
         JButton button1 = new JButton(img);
         button1.setBorder(null);
         JLabel label1 = new JLabel("Maestro");
@@ -73,7 +74,8 @@ class Panel {
 
         mouseAdapter(button1);
         button1.addActionListener(e -> {
-            // Switch to the existing Maestro window
+            // NUEVO: Quitar el alwaysOnTop antes de ocultar el menú
+            frame.setAlwaysOnTop(false);
             focusWindow("Maestro", false);
             frame.setVisible(false);
             topBar.setVisible(true);
@@ -85,7 +87,7 @@ class Panel {
         btnContainer1.add(Box.createVerticalStrut(10));
         btnContainer1.add(label1);
 
-        // --- BUTTON 2: WEB ---
+        // --- BOTÓN 2: WEB ---
         JButton button2 = new JButton(img);
         button2.setBorder(null);
         JLabel label2 = new JLabel("Luxes - Expertos en Iluminación");
@@ -94,8 +96,8 @@ class Panel {
 
         mouseAdapter(button2);
         button2.addActionListener(e -> {
-            // Switch to the existing Web/Browser window
-            // Note: Use a unique part of the browser's window title here
+            // NUEVO: Quitar el alwaysOnTop antes de ocultar el menú
+            frame.setAlwaysOnTop(false);
             focusWindow("Luxes", false);
             frame.setVisible(false);
             topBar.setVisible(true);
@@ -107,18 +109,26 @@ class Panel {
         btnContainer2.add(Box.createVerticalStrut(10));
         btnContainer2.add(label2);
 
-        // --- FRAME FINAL SETUP ---
+        // --- CONFIGURACIÓN FINAL DEL FRAME ---
         frame.setLayout(new FlowLayout(FlowLayout.CENTER, screenWidth / 8, screenHeight / 3));
         frame.add(btnContainer1);
         frame.add(btnContainer2);
 
         frame.setExtendedState(Frame.MAXIMIZED_BOTH);
+        // NUEVO: El menú arranca por encima de todo para evitar que los programas lentos lo tapen
+        frame.setAlwaysOnTop(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Ensure processes die when the main app closes
+        // NUEVO: ShutdownHook corregido para cerrar xdg-open indirectamente
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (maestroProc.get() != null) maestroProc.get().destroyForcibly();
-            if (webProc.get() != null) webProc.get().destroyForcibly();
+
+            // Cerrar la ventana del navegador enviando la señal con wmctrl
+            try {
+                new ProcessBuilder("wmctrl", "-c", "Luxes").start();
+            } catch (IOException e) {
+                System.err.println("No se pudo cerrar el navegador: " + e.getMessage());
+            }
         }));
 
         frame.setVisible(true);
@@ -126,31 +136,37 @@ class Panel {
 
     private static void initPersistentProcesses() {
         try {
-            // Launch Maestro
-            maestroProc.set(new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4.jar").start());
+            // Lanzar Maestro
+            Process maestro = new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4.jar").start();
+            maestroProc.set(maestro);
 
-            // Launch Web
-            webProc.set(new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start());
+            // Lanzar Web (xdg-open delega el proceso al sistema)
+            Process web = new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start();
+            webProc.set(web);
         } catch (IOException e) {
             System.err.println("Error starting background processes: " + e.getMessage());
         }
     }
 
     /**
-     * Uses wmctrl to manipulate external windows.
-     * @param title The title (or partial title) of the window.
-     * @param hide If true, minimizes the window. If false, brings it to front.
+     * Utiliza wmctrl para manipular ventanas externas.
+     * @param title El título (o parte del título) de la ventana.
+     * @param hide Si es true, minimiza/oculta la ventana. Si es false, la trae al frente.
      */
     private static void focusWindow(String title, boolean hide) {
         try {
             if (hide) {
-                // Minimize window
+                // Ocultar ventana
                 new ProcessBuilder("wmctrl", "-r", title, "-b", "add,hidden").start();
             } else {
-                // Bring window to front
+                // NUEVO: Quitar el estado 'hidden' antes de traerla al frente
+                Process p = new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start();
+                p.waitFor(); // Esperar a que el sistema operativo quite el estado
+
+                // Traer al frente
                 new ProcessBuilder("wmctrl", "-a", title).start();
             }
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             System.err.println("wmctrl failed: " + e.getMessage());
         }
     }
