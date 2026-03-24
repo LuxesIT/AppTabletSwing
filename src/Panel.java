@@ -230,11 +230,8 @@ class Panel {
                 if (hide) {
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "add,hidden").start().waitFor();
                 } else {
-                    new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
-                    if ("Luxes".equalsIgnoreCase(title)) {
-                        setWindowFullscreen(title);
-                    }
+                    new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
 
                     Thread.sleep(400);
 
@@ -258,14 +255,6 @@ class Panel {
                 System.err.println("wmctrl failed: " + e.getMessage());
             }
         }).start();
-    }
-
-    private static void setWindowFullscreen(String title) {
-        try {
-            new ProcessBuilder("wmctrl", "-r", title, "-b", "add,fullscreen").start().waitFor();
-        } catch (Exception e) {
-            System.err.println("Failed to set fullscreen for " + title + ": " + e.getMessage());
-        }
     }
 
     private static void mouseAdapter(JButton button) {
