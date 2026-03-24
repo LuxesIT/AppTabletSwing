@@ -239,6 +239,7 @@ class Panel {
                         }
 
                         if (topBar != null) {
+                            topBar.setLocation(0, 0);
                             topBar.setVisible(true);
                             topBar.setAlwaysOnTop(false);
                             topBar.setAlwaysOnTop(true);
