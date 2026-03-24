@@ -165,8 +165,16 @@ class Panel {
         new Thread(() -> {
             boolean maestroReady = false;
             boolean webReady = false;
+            long startMs = System.currentTimeMillis();
+            long maestroTimeoutMs = 30000;
+            long webTimeoutMs = 12000;
 
-            while (!maestroReady || !webReady) {
+            while (true) {
+                long elapsed = System.currentTimeMillis() - startMs;
+                boolean mustWaitMaestro = !maestroReady && elapsed < maestroTimeoutMs;
+                boolean mustWaitWeb = !webReady && elapsed < webTimeoutMs;
+                if (!mustWaitMaestro && !mustWaitWeb) break;
+
                 try {
                     Process p = new ProcessBuilder("wmctrl", "-l").start();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -183,12 +191,25 @@ class Panel {
                 }
             }
 
-            focusWindow("Controller Remote", true, null, null);
-            focusWindow("Luxes", true, null, null);
+            if (maestroReady) {
+                focusWindow("Controller Remote", true, null, null);
+            }
+            if (webReady) {
+                focusWindow("Luxes", true, null, null);
+            }
 
+            final boolean finalMaestroReady = maestroReady;
             SwingUtilities.invokeLater(() -> {
                 loadingScreen.dispose();
-                focusWindow("Controller Remote", false, topBar, frame);
+                if (finalMaestroReady) {
+                    focusWindow("Controller Remote", false, topBar, frame);
+                } else {
+                    System.err.println("Maestro no estuvo listo antes del timeout. Mostrando menu principal.");
+                    frame.setAlwaysOnTop(true);
+                    frame.setVisible(true);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                    topBar.setVisible(false);
+                }
             });
 
         }).start();
@@ -232,11 +253,45 @@ class Panel {
     private static void initPersistentProcesses() {
         try {
             maestroProc.set(new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4_undecorated.jar").start());
-            webProc.set(new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start());
+            String webUrl = loadWebUrl();
+            String escapedUrl = escapeForBashDoubleQuotes(webUrl);
+            webProc.set(new ProcessBuilder("bash", "-c", "xdg-open \"" + escapedUrl + "\"").start());
 
         } catch (IOException e) {
             System.err.println("Error starting processes: " + e.getMessage());
         }
+    }
+
+    private static String loadWebUrl() {
+        URL urlResource = Panel.class.getResource("/url.txt");
+        if (urlResource == null) {
+            return "https://luxes.es";
+        }
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(urlResource.openStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String value = line.trim();
+                if (!value.isEmpty()) {
+                    if (value.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*")) {
+                        return value;
+                    }
+                    return "https://" + value;
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error loading url.txt: " + e.getMessage());
+        }
+
+        return "https://luxes.es";
+    }
+
+    private static String escapeForBashDoubleQuotes(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("$", "\\$")
+                .replace("`", "\\`");
     }
 
     // --- FOCUS WINDOW REESCRITO PARA ELIMINAR PARPADEOS ---
