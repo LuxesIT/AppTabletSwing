@@ -19,7 +19,7 @@ class Panel {
         int screenWidth = (int) screenSize.getWidth();
         int screenHeight = (int) screenSize.getHeight();
 
-        // --- ESCALADO 1.3x APLICADO AQUÍ ---
+        // --- ESCALADO 1.3x ---
         int btnWidth = (int) (screenWidth * 0.195);
         int btnHeight = (int) (screenHeight * 0.325);
         Dimension strictBtnSize = new Dimension(btnWidth, btnHeight);
@@ -34,7 +34,7 @@ class Panel {
 
         JLabel loadingLabel = new JLabel("Iniciando módulos, por favor espere...");
         loadingLabel.setForeground(Color.WHITE);
-        loadingLabel.setFont(new Font("Arial", Font.BOLD, 30)); // Escalado de 24 a 30
+        loadingLabel.setFont(new Font("Arial", Font.BOLD, 30));
         loadingScreen.add(loadingLabel);
 
         // --- UI SETUP ---
@@ -45,7 +45,7 @@ class Panel {
         btnContainer1.setLayout(new BoxLayout(btnContainer1, BoxLayout.Y_AXIS));
         btnContainer2.setLayout(new BoxLayout(btnContainer2, BoxLayout.Y_AXIS));
 
-        // Las imágenes ahora se estiran al 100% del tamaño estricto del botón
+        // Las imágenes se estiran al 100% del tamaño estricto del botón
         URL imageUrlBtn1 = Panel.class.getResource("/images/1.png");
         ImageIcon scaledImgBtn1 = getScaledIcon(imageUrlBtn1, btnWidth, btnHeight);
 
@@ -83,13 +83,15 @@ class Panel {
         });
 
         backBtn.addActionListener(e -> {
+            // El botón de volver sube el menú inmediatamente
             frame.setAlwaysOnTop(true);
             frame.setVisible(true);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
             topBar.setVisible(false);
 
-            focusWindow("Controller Remote", true, null);
-            focusWindow("Luxes", true, null);
+            // Pasamos null para topBar y mainFrame porque solo estamos ocultando ventanas de fondo
+            focusWindow("Controller Remote", true, null, null);
+            focusWindow("Luxes", true, null, null);
         });
 
         topBar.add(backBtn, BorderLayout.CENTER);
@@ -100,10 +102,8 @@ class Panel {
 
         mouseAdapter(button1);
         button1.addActionListener(e -> {
-            focusWindow("Controller Remote", false, topBar);
-            frame.setAlwaysOnTop(false);
-            frame.setVisible(false);
-            topBar.setVisible(true);
+            // Delegamos TODO a focusWindow, pasándole el topBar y el frame principal
+            focusWindow("Controller Remote", false, topBar, frame);
         });
 
         button1.setFocusPainted(false);
@@ -117,10 +117,8 @@ class Panel {
 
         mouseAdapter(button2);
         button2.addActionListener(e -> {
-            focusWindow("Luxes", false, topBar);
-            frame.setAlwaysOnTop(false);
-            frame.setVisible(false);
-            topBar.setVisible(true);
+            // Delegamos TODO a focusWindow, pasándole el topBar y el frame principal
+            focusWindow("Luxes", false, topBar, frame);
         });
 
         button2.setFocusPainted(false);
@@ -175,8 +173,8 @@ class Panel {
                 }
             }
 
-            focusWindow("Controller Remote", true, null);
-            focusWindow("Luxes", true, null);
+            focusWindow("Controller Remote", true, null, null);
+            focusWindow("Luxes", true, null, null);
 
             SwingUtilities.invokeLater(() -> {
                 loadingScreen.dispose();
@@ -215,7 +213,8 @@ class Panel {
         }
     }
 
-    private static void focusWindow(String title, boolean hide, JDialog topBar) {
+    // --- FOCUS WINDOW REESCRITO PARA ELIMINAR PARPADEOS ---
+    private static void focusWindow(String title, boolean hide, JDialog topBar, JFrame mainFrame) {
         new Thread(() -> {
             try {
                 if (hide) {
@@ -224,17 +223,24 @@ class Panel {
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
 
-                    Thread.sleep(2000);
+                    // Esperamos 400ms a que Linux levante la ventana gráfica (especialmente útil para la web pesada)
+                    Thread.sleep(400);
 
-                    if (topBar != null) {
-                        Thread.sleep(300);
-                        SwingUtilities.invokeLater(() -> {
+                    // AHORA ocultamos el menú principal y mostramos el botón de la esquina
+                    SwingUtilities.invokeLater(() -> {
+                        if (mainFrame != null) {
+                            mainFrame.setAlwaysOnTop(false);
+                            mainFrame.setVisible(false);
+                        }
+
+                        if (topBar != null) {
+                            topBar.setVisible(true);
                             topBar.setAlwaysOnTop(false);
                             topBar.setAlwaysOnTop(true);
                             topBar.toFront();
                             topBar.repaint();
-                        });
-                    }
+                        }
+                    });
                 }
             } catch (Exception e) {
                 System.err.println("wmctrl failed: " + e.getMessage());
