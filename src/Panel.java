@@ -6,7 +6,6 @@ import java.net.URL;
 import java.util.concurrent.atomic.AtomicReference;
 
 class Panel {
-    // Referencias separadas para cada proceso
     private static final AtomicReference<Process> maestroProc = new AtomicReference<>();
     private static final AtomicReference<Process> webProc = new AtomicReference<>();
 
@@ -16,8 +15,27 @@ class Panel {
         JPanel btnContainer2 = new JPanel();
         frame.setUndecorated(true);
 
-        // 1. INICIALIZAR PROCESOS (quedarán por debajo inicialmente)
-        initPersistentProcesses();
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int screenWidth = (int) screenSize.getWidth();
+        int screenHeight = (int) screenSize.getHeight();
+
+        // Calcular tamaños estrictos
+        int btnWidth = (int) (screenWidth * 0.15); // Un poco más ancho para que quepa bien
+        int btnHeight = (int) (screenHeight * 0.25);
+        Dimension strictBtnSize = new Dimension(btnWidth, btnHeight);
+
+        // --- PANTALLA DE CARGA ---
+        JDialog loadingScreen = new JDialog(frame, "Cargando", true); // Modal
+        loadingScreen.setUndecorated(true);
+        loadingScreen.setSize(screenSize);
+        loadingScreen.setAlwaysOnTop(true);
+        loadingScreen.getContentPane().setBackground(Color.BLACK);
+        loadingScreen.setLayout(new GridBagLayout());
+
+        JLabel loadingLabel = new JLabel("Iniciando módulos, por favor espere...");
+        loadingLabel.setForeground(Color.WHITE);
+        loadingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        loadingScreen.add(loadingLabel);
 
         // --- UI SETUP ---
         BufferedImage cursorImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
@@ -27,18 +45,9 @@ class Panel {
         btnContainer1.setLayout(new BoxLayout(btnContainer1, BoxLayout.Y_AXIS));
         btnContainer2.setLayout(new BoxLayout(btnContainer2, BoxLayout.Y_AXIS));
 
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int screenWidth = (int) screenSize.getWidth();
-        int screenHeight = (int) screenSize.getHeight();
-
-        int btnWidth = (int) (screenWidth * 0.10);
-        int btnHeight = (int) (screenHeight * 0.3);
-
-        ImageIcon img = null;
+        // Cargar y redimensionar imagen (dejamos un margen del 20% para que respire dentro del botón)
         URL imageUrl = Panel.class.getResource("/images/logo_luxes.png");
-        if (imageUrl != null) {
-            img = new ImageIcon(imageUrl);
-        }
+        ImageIcon scaledImg = getScaledIcon(imageUrl, (int)(btnWidth * 0.8), (int)(btnHeight * 0.8));
 
         // --- TOPBAR / NAVEGACIÓN ---
         JDialog topBar = new JDialog(frame, "Navigation");
@@ -53,28 +62,25 @@ class Panel {
         backBtn.setBorder(null);
         backBtn.setPreferredSize(new Dimension(100, 30));
         backBtn.addActionListener(e -> {
-            // NUEVO: Volver a forzar el menú por encima de todo
             frame.setAlwaysOnTop(true);
             frame.setVisible(true);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
             topBar.setVisible(false);
 
-            // Ocultar las ventanas de fondo
-            focusWindow("Maestro", true, topBar);
-            focusWindow("Luxes", true, topBar);
+            focusWindow("Maestro", true, null);
+            focusWindow("Luxes", true, null);
         });
         topBar.add(backBtn);
 
         // --- BOTÓN 1: MAESTRO ---
-        JButton button1 = new JButton(img);
-        button1.setBorder(null);
+        JButton button1 = new JButton(scaledImg); // Usamos la imagen escalada
+        configurarBotonEstricto(button1, strictBtnSize); // Forzamos tamaño
+
         JLabel label1 = new JLabel("Maestro");
         label1.setFont(new Font("Arial", Font.BOLD, 14));
-        button1.setPreferredSize(new Dimension(btnWidth, btnHeight));
 
         mouseAdapter(button1);
         button1.addActionListener(e -> {
-            // NUEVO: Quitar el alwaysOnTop antes de ocultar el menú
             frame.setAlwaysOnTop(false);
             frame.setVisible(false);
             topBar.setVisible(true);
@@ -88,15 +94,14 @@ class Panel {
         btnContainer1.add(label1);
 
         // --- BOTÓN 2: WEB ---
-        JButton button2 = new JButton(img);
-        button2.setBorder(null);
+        JButton button2 = new JButton(scaledImg);
+        configurarBotonEstricto(button2, strictBtnSize);
+
         JLabel label2 = new JLabel("Luxes - Expertos en Iluminación");
         label2.setFont(new Font("Arial", Font.BOLD, 14));
-        button2.setPreferredSize(new Dimension(btnWidth, btnHeight));
 
         mouseAdapter(button2);
         button2.addActionListener(e -> {
-            // NUEVO: Quitar el alwaysOnTop antes de ocultar el menú
             frame.setAlwaysOnTop(false);
             frame.setVisible(false);
             topBar.setVisible(true);
@@ -115,63 +120,100 @@ class Panel {
         frame.add(btnContainer2);
 
         frame.setExtendedState(Frame.MAXIMIZED_BOTH);
-        // NUEVO: El menú arranca por encima de todo para evitar que los programas lentos lo tapen
         frame.setAlwaysOnTop(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // NUEVO: ShutdownHook corregido para cerrar xdg-open indirectamente
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (maestroProc.get() != null) maestroProc.get().destroyForcibly();
-
-            // Cerrar la ventana del navegador enviando la señal con wmctrl
             try {
                 new ProcessBuilder("wmctrl", "-c", "Luxes").start();
-            } catch (IOException e) {
-                System.err.println("No se pudo cerrar el navegador: " + e.getMessage());
-            }
+            } catch (IOException e) {}
         }));
 
+        // 1. Iniciamos los procesos
+        initPersistentProcesses();
+
+        // 2. Iniciamos el hilo que vigila cuándo las ventanas están listas
+        monitorBackgroundProcesses(loadingScreen);
+
+        // 3. Mostramos el frame base y bloqueamos con la pantalla de carga
         frame.setVisible(true);
+        loadingScreen.setVisible(true); // Esto detiene la ejecución del hilo principal hasta que el monitor la cierre
+    }
+
+    // --- NUEVO: MONITOR DE CARGA ---
+    private static void monitorBackgroundProcesses(JDialog loadingScreen) {
+        new Thread(() -> {
+            boolean maestroReady = false;
+            boolean webReady = false;
+
+            while (!maestroReady || !webReady) {
+                try {
+                    Process p = new ProcessBuilder("wmctrl", "-l").start();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.contains("Maestro")) maestroReady = true;
+                        if (line.contains("Luxes")) webReady = true;
+                    }
+                    Thread.sleep(500); // Esperar medio segundo antes de volver a preguntar
+                } catch (Exception e) {
+                    System.err.println("Error monitoreando ventanas: " + e.getMessage());
+                }
+            }
+
+            // Una vez que ambas existen, las ocultamos y quitamos la pantalla de carga
+            focusWindow("Maestro", true, null);
+            focusWindow("Luxes", true, null);
+
+            SwingUtilities.invokeLater(() -> {
+                loadingScreen.dispose(); // Cierra la pantalla de carga y libera el menú principal
+            });
+
+        }).start();
+    }
+
+    // --- NUEVO: REDIMENSIONADO DE IMAGEN ---
+    private static ImageIcon getScaledIcon(URL imageUrl, int width, int height) {
+        if (imageUrl != null) {
+            ImageIcon original = new ImageIcon(imageUrl);
+            Image img = original.getImage();
+            Image scaled = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaled);
+        }
+        return null;
+    }
+
+    // --- NUEVO: FORZAR TAMAÑO DE BOTÓN ---
+    private static void configurarBotonEstricto(JButton button, Dimension dim) {
+        button.setBorder(null);
+        button.setMinimumSize(dim);
+        button.setMaximumSize(dim);
+        button.setPreferredSize(dim);
+        button.setBackground(Color.WHITE); // Opcional, para que el fondo del botón sea limpio
     }
 
     private static void initPersistentProcesses() {
         try {
-            // Lanzar Maestro
-            Process maestro = new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4.jar").start();
-            maestroProc.set(maestro);
-
-            // Lanzar Web (xdg-open delega el proceso al sistema)
-            Process web = new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start();
-            webProc.set(web);
+            maestroProc.set(new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4.jar").start());
+            webProc.set(new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start());
         } catch (IOException e) {
-            System.err.println("Error starting background processes: " + e.getMessage());
+            System.err.println("Error starting processes: " + e.getMessage());
         }
     }
 
-    /**
-     * Utiliza wmctrl para manipular ventanas externas en un hilo separado.
-     * @param title El título de la ventana objetivo.
-     * @param hide True para minimizar, false para traer al frente.
-     * @param topBar El diálogo de navegación que debe quedar por encima (puede ser null).
-     */
     private static void focusWindow(String title, boolean hide, JDialog topBar) {
         new Thread(() -> {
             try {
                 if (hide) {
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "add,hidden").start().waitFor();
                 } else {
-                    // 1. Quitar el estado 'hidden'
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
-
-                    // 2. Traer la ventana al frente
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
 
-                    // 3. Si necesitamos que la barra superior sobreviva, la forzamos a subir
                     if (topBar != null) {
-                        Thread.sleep(300); // Pausa táctica para que Linux termine sus animaciones/foco
-
+                        Thread.sleep(300);
                         SwingUtilities.invokeLater(() -> {
-                            // Resetear el estado fuerza al SO a repintarla en la capa más alta
                             topBar.setAlwaysOnTop(false);
                             topBar.setAlwaysOnTop(true);
                             topBar.toFront();
