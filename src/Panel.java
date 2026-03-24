@@ -19,7 +19,7 @@ class Panel {
         int screenWidth = (int) screenSize.getWidth();
         int screenHeight = (int) screenSize.getHeight();
 
-        // --- ESCALADO 1.3x APLICADO AQUÍ ---
+        // --- ESCALADO 1.3x ---
         int btnWidth = (int) (screenWidth * 0.195);
         int btnHeight = (int) (screenHeight * 0.325);
         Dimension strictBtnSize = new Dimension(btnWidth, btnHeight);
@@ -34,7 +34,7 @@ class Panel {
 
         JLabel loadingLabel = new JLabel("Iniciando módulos, por favor espere...");
         loadingLabel.setForeground(Color.WHITE);
-        loadingLabel.setFont(new Font("Arial", Font.BOLD, 30)); // Escalado de 24 a 30
+        loadingLabel.setFont(new Font("Arial", Font.BOLD, 30));
         loadingScreen.add(loadingLabel);
 
         // --- UI SETUP ---
@@ -45,77 +45,93 @@ class Panel {
         btnContainer1.setLayout(new BoxLayout(btnContainer1, BoxLayout.Y_AXIS));
         btnContainer2.setLayout(new BoxLayout(btnContainer2, BoxLayout.Y_AXIS));
 
-        // La imagen se redimensiona automáticamente porque depende de btnWidth/btnHeight
-        URL imageUrl = Panel.class.getResource("/images/logo_luxes.png");
-        ImageIcon scaledImg = getScaledIcon(imageUrl, (int)(btnWidth * 0.8), (int)(btnHeight * 0.8));
+        // Las imágenes se estiran al 100%
+        URL imageUrlBtn1 = Panel.class.getResource("/images/1.png");
+        ImageIcon scaledImgBtn1 = getScaledIcon(imageUrlBtn1, btnWidth, btnHeight);
 
-        // --- TOPBAR / NAVEGACIÓN (Escalado 1.3x) ---
-        JDialog topBar = new JDialog(frame, "Navigation");
+        URL imageUrlBtn2 = Panel.class.getResource("/images/2.png");
+        ImageIcon scaledImgBtn2 = getScaledIcon(imageUrlBtn2, btnWidth, btnHeight);
+
+        // --- TOPBAR / NAVEGACIÓN (Escudo Invisible) ---
+        JDialog topBar = new JDialog((Frame)null, "Navigation");
         topBar.setUndecorated(true);
-        topBar.setSize(145, 52); // Más grande
-        topBar.setLocation(screenWidth - 145, 0); // Ajustado al nuevo ancho
+        // Ocupa todo el ancho de la pantalla y le damos 50px de alto para tapar bien las pestañas
+        topBar.setSize(screenWidth, 50);
+        topBar.setLocation(0, 0);
         topBar.setAlwaysOnTop(true);
-        topBar.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+        // Hacemos que la ventana en sí sea transparente para el sistema
+        topBar.setBackground(new Color(0, 0, 0, 0));
+        topBar.setLayout(new BorderLayout());
         topBar.getContentPane().setCursor(blankCursor);
 
-        JButton backBtn = new JButton("Back to menu");
+        // ESCUDO: Este panel se traga los clics para que no lleguen a la app de abajo
+        JPanel clickBlocker = new JPanel();
+        // Alpha de 1/255: Invisible a la vista, pero X11 lo trata como un muro sólido
+        clickBlocker.setBackground(new Color(0, 0, 0, 1));
+        clickBlocker.addMouseListener(new java.awt.event.MouseAdapter() {}); // Absorbe los toques
+
+        JButton backBtn = new JButton("Volver al menú");
         backBtn.setBorder(null);
-        backBtn.setPreferredSize(new Dimension(130, 40)); // Más grande
-        backBtn.setFont(new Font("Arial", Font.BOLD, 14)); // Letra más legible
+        backBtn.setFocusPainted(false);
+        backBtn.setContentAreaFilled(false);
+        backBtn.setOpaque(true);
+        backBtn.setPreferredSize(new Dimension(150, 50)); // Dimensionamos el botón
+
+        backBtn.setBackground(Color.WHITE);
+        backBtn.setForeground(Color.BLACK);
+        backBtn.setFont(new Font("Arial", Font.BOLD, 14));
+
+        backBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                backBtn.setBackground(new Color(173, 216, 230));
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                backBtn.setBackground(Color.WHITE);
+            }
+        });
+
         backBtn.addActionListener(e -> {
             frame.setAlwaysOnTop(true);
             frame.setVisible(true);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
             topBar.setVisible(false);
 
-            // CORRECCIÓN: Usar "Controller Remote" en vez de "Maestro"
-            focusWindow("Controller Remote", true, null);
-            focusWindow("Luxes", true, null);
+            focusWindow("Controller Remote", true, null, null);
+            focusWindow("Luxes", true, null, null);
         });
-        topBar.add(backBtn);
+
+        // Ensamblamos la barra: El escudo al centro (ocupa todo el espacio sobrante) y el botón a la derecha
+        topBar.add(clickBlocker, BorderLayout.CENTER);
+        topBar.add(backBtn, BorderLayout.EAST);
 
         // --- BOTÓN 1: MAESTRO ---
-        JButton button1 = new JButton(scaledImg);
+        JButton button1 = new JButton(scaledImgBtn1);
         configurarBotonEstricto(button1, strictBtnSize);
-
-        JLabel label1 = new JLabel("Maestro");
-        label1.setFont(new Font("Arial", Font.BOLD, 18)); // Escalado de 14 a 18
 
         mouseAdapter(button1);
         button1.addActionListener(e -> {
-            frame.setAlwaysOnTop(false);
-            frame.setVisible(false);
-            topBar.setVisible(true);
-            // CORRECCIÓN
-            focusWindow("Controller Remote", false, topBar);
+            focusWindow("Controller Remote", false, topBar, frame);
         });
 
+        button1.setFocusPainted(false);
         button1.setAlignmentX(Component.CENTER_ALIGNMENT);
-        label1.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnContainer1.add(button1);
-        btnContainer1.add(Box.createVerticalStrut(13)); // Margen un poco más amplio
-        btnContainer1.add(label1);
+        btnContainer1.add(Box.createVerticalStrut(2));
 
         // --- BOTÓN 2: WEB ---
-        JButton button2 = new JButton(scaledImg);
+        JButton button2 = new JButton(scaledImgBtn2);
         configurarBotonEstricto(button2, strictBtnSize);
-
-        JLabel label2 = new JLabel("Luxes - Expertos en Iluminación");
-        label2.setFont(new Font("Arial", Font.BOLD, 18)); // Escalado de 14 a 18
 
         mouseAdapter(button2);
         button2.addActionListener(e -> {
-            frame.setAlwaysOnTop(false);
-            frame.setVisible(false);
-            topBar.setVisible(true);
-            focusWindow("Luxes", false, topBar);
+            focusWindow("Luxes", false, topBar, frame);
         });
 
+        button2.setFocusPainted(false);
         button2.setAlignmentX(Component.CENTER_ALIGNMENT);
-        label2.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnContainer2.add(button2);
-        btnContainer2.add(Box.createVerticalStrut(13)); // Margen un poco más amplio
-        btnContainer2.add(label2);
+        btnContainer2.add(Box.createVerticalStrut(2));
 
         // --- CONFIGURACIÓN FINAL DEL FRAME ---
         frame.setLayout(new FlowLayout(FlowLayout.CENTER, screenWidth / 8, screenHeight / 3));
@@ -125,6 +141,7 @@ class Panel {
         frame.setExtendedState(Frame.MAXIMIZED_BOTH);
         frame.setAlwaysOnTop(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.getContentPane().setCursor(blankCursor);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (maestroProc.get() != null) maestroProc.get().destroyForcibly();
@@ -135,6 +152,7 @@ class Panel {
 
         initPersistentProcesses();
         monitorBackgroundProcesses(loadingScreen);
+
 
         frame.setVisible(true);
         loadingScreen.setVisible(true);
@@ -163,12 +181,15 @@ class Panel {
                 }
             }
 
-            // CORRECCIÓN: Consistencia en los nombres
-            focusWindow("Controller Remote", true, null);
-            focusWindow("Luxes", true, null);
+            focusWindow("Controller Remote", true, null, null);
+            focusWindow("Luxes", true, null, null);
+            setWindowFullscreen("Luxes");
 
             SwingUtilities.invokeLater(() -> {
                 loadingScreen.dispose();
+                focusWindow("Controller Remote", false, null, loadingScreen.getOwner() instanceof JFrame
+                        ? (JFrame) loadingScreen.getOwner()
+                        : null);
             });
 
         }).start();
@@ -185,47 +206,69 @@ class Panel {
         return null;
     }
 
-    // --- FORZAR TAMAÑO DE BOTÓN ---
+    // --- FORZAR TAMAÑO DE BOTÓN 100% IMAGEN ---
     private static void configurarBotonEstricto(JButton button, Dimension dim) {
         button.setBorder(null);
+        button.setMargin(new Insets(0, 0, 0, 0));
+        button.setContentAreaFilled(false);
         button.setMinimumSize(dim);
         button.setMaximumSize(dim);
         button.setPreferredSize(dim);
-        button.setBackground(Color.WHITE);
     }
 
     private static void initPersistentProcesses() {
         try {
             maestroProc.set(new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4_undecorated.jar").start());
             webProc.set(new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start());
+
         } catch (IOException e) {
             System.err.println("Error starting processes: " + e.getMessage());
         }
     }
 
-    private static void focusWindow(String title, boolean hide, JDialog topBar) {
+    // --- FOCUS WINDOW REESCRITO PARA ELIMINAR PARPADEOS ---
+    private static void focusWindow(String title, boolean hide, JDialog topBar, JFrame mainFrame) {
         new Thread(() -> {
             try {
                 if (hide) {
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "add,hidden").start().waitFor();
                 } else {
-                    new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
+                    new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
+                    if ("Luxes".equalsIgnoreCase(title)) {
+                        setWindowFullscreen(title);
+                    }
 
-                    if (topBar != null) {
-                        Thread.sleep(300);
-                        SwingUtilities.invokeLater(() -> {
+                    Thread.sleep(400);
+
+                    SwingUtilities.invokeLater(() -> {
+                        if (mainFrame != null) {
+                            mainFrame.setAlwaysOnTop(false);
+                            mainFrame.setVisible(false);
+                        }
+
+                        if (topBar != null) {
+                            topBar.setLocation(0, 0);
+                            topBar.setVisible(true);
                             topBar.setAlwaysOnTop(false);
                             topBar.setAlwaysOnTop(true);
                             topBar.toFront();
                             topBar.repaint();
-                        });
-                    }
+                        }
+                    });
                 }
             } catch (Exception e) {
                 System.err.println("wmctrl failed: " + e.getMessage());
             }
         }).start();
+    }
+
+    private static void setWindowFullscreen(String title) {
+        try {
+            new ProcessBuilder("wmctrl", "-r", title, "-b", "add,fullscreen").start().waitFor();
+        } catch (Exception e) {
+            System.err.println("Failed to set fullscreen for " + title + ": " + e.getMessage());
+        }
     }
 
     private static void mouseAdapter(JButton button) {
