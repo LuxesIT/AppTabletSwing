@@ -67,6 +67,15 @@ class Panel {
         topBar.setLayout(new BorderLayout());
         topBar.getContentPane().setCursor(blankCursor);
 
+        JDialog backOverlay = new JDialog((Frame)null, "BackOverlay");
+        backOverlay.setUndecorated(true);
+        backOverlay.setSize(170, 60);
+        backOverlay.setLocation(10, screenHeight - 70);
+        backOverlay.setAlwaysOnTop(true);
+        backOverlay.setBackground(new Color(0, 0, 0, 0));
+        backOverlay.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        backOverlay.getContentPane().setCursor(blankCursor);
+
         // ESCUDO: Este panel se traga los clics para que no lleguen a la app de abajo
         JPanel clickBlocker = new JPanel();
         // Alpha de 1/255: Invisible a la vista, pero X11 lo trata como un muro sólido
@@ -98,14 +107,15 @@ class Panel {
             frame.setVisible(true);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
             topBar.setVisible(false);
+            backOverlay.setVisible(false);
 
-            focusWindow("Controller Remote", true, null, null);
-            focusWindow("Luxes", true, null, null);
+            focusWindow("Controller Remote", true, null, null, null);
+            focusWindow("Luxes", true, null, null, null);
         });
 
         // Ensamblamos la barra: El escudo al centro (ocupa todo el espacio sobrante) y el botón a la derecha
         topBar.add(clickBlocker, BorderLayout.CENTER);
-        topBar.add(backBtn, BorderLayout.EAST);
+        backOverlay.add(backBtn);
 
         // --- BOTÓN 1: MAESTRO ---
         JButton button1 = new JButton(scaledImgBtn1);
@@ -113,7 +123,7 @@ class Panel {
 
         mouseAdapter(button1);
         button1.addActionListener(e -> {
-            focusWindow("Controller Remote", false, topBar, frame);
+            focusWindow("Controller Remote", false, topBar, backOverlay, frame);
         });
 
         button1.setFocusPainted(false);
@@ -127,7 +137,7 @@ class Panel {
 
         mouseAdapter(button2);
         button2.addActionListener(e -> {
-            focusWindow("Luxes", false, topBar, frame);
+            focusWindow("Luxes", false, topBar, backOverlay, frame);
         });
 
         button2.setFocusPainted(false);
@@ -153,7 +163,7 @@ class Panel {
         }));
 
         initPersistentProcesses();
-        monitorBackgroundProcesses(loadingScreen, frame, topBar);
+        monitorBackgroundProcesses(loadingScreen, frame, topBar, backOverlay);
 
 
         frame.setVisible(true);
@@ -161,7 +171,7 @@ class Panel {
     }
 
     // --- MONITOR DE CARGA ---
-    private static void monitorBackgroundProcesses(JDialog loadingScreen, JFrame frame, JDialog topBar) {
+    private static void monitorBackgroundProcesses(JDialog loadingScreen, JFrame frame, JDialog topBar, JDialog backOverlay) {
         new Thread(() -> {
             boolean maestroReady = false;
             boolean webReady = false;
@@ -192,23 +202,24 @@ class Panel {
             }
 
             if (maestroReady) {
-                focusWindow("Controller Remote", true, null, null);
+                focusWindow("Controller Remote", true, null, null, null);
             }
             if (webReady) {
-                focusWindow("Luxes", true, null, null);
+                focusWindow("Luxes", true, null, null, null);
             }
 
             final boolean finalMaestroReady = maestroReady;
             SwingUtilities.invokeLater(() -> {
                 loadingScreen.dispose();
                 if (finalMaestroReady) {
-                    focusWindow("Controller Remote", false, topBar, frame);
+                    focusWindow("Controller Remote", false, topBar, backOverlay, frame);
                 } else {
                     System.err.println("Maestro no estuvo listo antes del timeout. Mostrando menu principal.");
                     frame.setAlwaysOnTop(true);
                     frame.setVisible(true);
                     frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     topBar.setVisible(false);
+                    backOverlay.setVisible(false);
                 }
             });
 
@@ -261,7 +272,7 @@ class Panel {
     }
 
     // --- FOCUS WINDOW REESCRITO PARA ELIMINAR PARPADEOS ---
-    private static void focusWindow(String title, boolean hide, JDialog topBar, JFrame mainFrame) {
+    private static void focusWindow(String title, boolean hide, JDialog topBar, JDialog backOverlay, JFrame mainFrame) {
         new Thread(() -> {
             try {
                 if (hide) {
@@ -285,6 +296,14 @@ class Panel {
                             topBar.setAlwaysOnTop(true);
                             topBar.toFront();
                             topBar.repaint();
+                        }
+
+                        if (backOverlay != null) {
+                            backOverlay.setVisible(true);
+                            backOverlay.setAlwaysOnTop(false);
+                            backOverlay.setAlwaysOnTop(true);
+                            backOverlay.toFront();
+                            backOverlay.repaint();
                         }
                     });
                 }
