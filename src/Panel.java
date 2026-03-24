@@ -53,7 +53,7 @@ class Panel {
         ImageIcon scaledImgBtn2 = getScaledIcon(imageUrlBtn2, btnWidth, btnHeight);
 
         // --- TOPBAR / NAVEGACIÓN (Escudo Invisible) ---
-        JDialog topBar = new JDialog(frame, "Navigation");
+        JDialog topBar = new JDialog((Frame)null, "Navigation");
         topBar.setUndecorated(true);
         // Ocupa todo el ancho de la pantalla y le damos 50px de alto para tapar bien las pestañas
         topBar.setSize(screenWidth, 50);
