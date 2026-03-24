@@ -60,8 +60,8 @@ class Panel {
             topBar.setVisible(false);
 
             // Ocultar las ventanas de fondo
-            focusWindow("Maestro", true);
-            focusWindow("Luxes", true);
+            focusWindow("Maestro", true, topBar);
+            focusWindow("Luxes", true, topBar);
         });
         topBar.add(backBtn);
 
@@ -76,9 +76,9 @@ class Panel {
         button1.addActionListener(e -> {
             // NUEVO: Quitar el alwaysOnTop antes de ocultar el menú
             frame.setAlwaysOnTop(false);
-            focusWindow("Maestro", false);
             frame.setVisible(false);
             topBar.setVisible(true);
+            focusWindow("Maestro", false, topBar);
         });
 
         button1.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -98,9 +98,9 @@ class Panel {
         button2.addActionListener(e -> {
             // NUEVO: Quitar el alwaysOnTop antes de ocultar el menú
             frame.setAlwaysOnTop(false);
-            focusWindow("Luxes", false);
             frame.setVisible(false);
             topBar.setVisible(true);
+            focusWindow("Luxes", false, topBar);
         });
 
         button2.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -149,26 +149,40 @@ class Panel {
     }
 
     /**
-     * Utiliza wmctrl para manipular ventanas externas.
-     * @param title El título (o parte del título) de la ventana.
-     * @param hide Si es true, minimiza/oculta la ventana. Si es false, la trae al frente.
+     * Utiliza wmctrl para manipular ventanas externas en un hilo separado.
+     * @param title El título de la ventana objetivo.
+     * @param hide True para minimizar, false para traer al frente.
+     * @param topBar El diálogo de navegación que debe quedar por encima (puede ser null).
      */
-    private static void focusWindow(String title, boolean hide) {
-        try {
-            if (hide) {
-                // Ocultar ventana
-                new ProcessBuilder("wmctrl", "-r", title, "-b", "add,hidden").start();
-            } else {
-                // NUEVO: Quitar el estado 'hidden' antes de traerla al frente
-                Process p = new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start();
-                p.waitFor(); // Esperar a que el sistema operativo quite el estado
+    private static void focusWindow(String title, boolean hide, JDialog topBar) {
+        new Thread(() -> {
+            try {
+                if (hide) {
+                    new ProcessBuilder("wmctrl", "-r", title, "-b", "add,hidden").start().waitFor();
+                } else {
+                    // 1. Quitar el estado 'hidden'
+                    new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
 
-                // Traer al frente
-                new ProcessBuilder("wmctrl", "-a", title).start();
+                    // 2. Traer la ventana al frente
+                    new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
+
+                    // 3. Si necesitamos que la barra superior sobreviva, la forzamos a subir
+                    if (topBar != null) {
+                        Thread.sleep(300); // Pausa táctica para que Linux termine sus animaciones/foco
+
+                        SwingUtilities.invokeLater(() -> {
+                            // Resetear el estado fuerza al SO a repintarla en la capa más alta
+                            topBar.setAlwaysOnTop(false);
+                            topBar.setAlwaysOnTop(true);
+                            topBar.toFront();
+                            topBar.repaint();
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("wmctrl failed: " + e.getMessage());
             }
-        } catch (IOException | InterruptedException e) {
-            System.err.println("wmctrl failed: " + e.getMessage());
-        }
+        }).start();
     }
 
     private static void mouseAdapter(JButton button) {
