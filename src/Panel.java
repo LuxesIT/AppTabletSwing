@@ -153,6 +153,7 @@ class Panel {
         initPersistentProcesses();
         monitorBackgroundProcesses(loadingScreen);
 
+
         frame.setVisible(true);
         loadingScreen.setVisible(true);
     }
@@ -182,9 +183,13 @@ class Panel {
 
             focusWindow("Controller Remote", true, null, null);
             focusWindow("Luxes", true, null, null);
+            setWindowFullscreen("Luxes");
 
             SwingUtilities.invokeLater(() -> {
                 loadingScreen.dispose();
+                focusWindow("Controller Remote", false, null, loadingScreen.getOwner() instanceof JFrame
+                        ? (JFrame) loadingScreen.getOwner()
+                        : null);
             });
 
         }).start();
@@ -215,6 +220,7 @@ class Panel {
         try {
             maestroProc.set(new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4_undecorated.jar").start());
             webProc.set(new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start());
+
         } catch (IOException e) {
             System.err.println("Error starting processes: " + e.getMessage());
         }
@@ -229,6 +235,9 @@ class Panel {
                 } else {
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
+                    if ("Luxes".equalsIgnoreCase(title)) {
+                        setWindowFullscreen(title);
+                    }
 
                     Thread.sleep(400);
 
@@ -252,6 +261,14 @@ class Panel {
                 System.err.println("wmctrl failed: " + e.getMessage());
             }
         }).start();
+    }
+
+    private static void setWindowFullscreen(String title) {
+        try {
+            new ProcessBuilder("wmctrl", "-r", title, "-b", "add,fullscreen").start().waitFor();
+        } catch (Exception e) {
+            System.err.println("Failed to set fullscreen for " + title + ": " + e.getMessage());
+        }
     }
 
     private static void mouseAdapter(JButton button) {
