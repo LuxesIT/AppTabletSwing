@@ -151,7 +151,7 @@ class Panel {
         }));
 
         initPersistentProcesses();
-        monitorBackgroundProcesses(loadingScreen);
+        monitorBackgroundProcesses(loadingScreen, frame, topBar);
 
 
         frame.setVisible(true);
@@ -159,7 +159,7 @@ class Panel {
     }
 
     // --- MONITOR DE CARGA ---
-    private static void monitorBackgroundProcesses(JDialog loadingScreen) {
+    private static void monitorBackgroundProcesses(JDialog loadingScreen, JFrame frame, JDialog topBar) {
         new Thread(() -> {
             boolean maestroReady = false;
             boolean webReady = false;
@@ -187,9 +187,7 @@ class Panel {
 
             SwingUtilities.invokeLater(() -> {
                 loadingScreen.dispose();
-                focusWindow("Controller Remote", false, null, loadingScreen.getOwner() instanceof JFrame
-                        ? (JFrame) loadingScreen.getOwner()
-                        : null);
+                focusWindow("Controller Remote", false, topBar, frame);
             });
 
         }).start();
