@@ -100,10 +100,10 @@ class Panel {
 
         mouseAdapter(button1);
         button1.addActionListener(e -> {
+            focusWindow("Controller Remote", false, topBar);
             frame.setAlwaysOnTop(false);
             frame.setVisible(false);
             topBar.setVisible(true);
-            focusWindow("Controller Remote", false, topBar);
         });
 
         button1.setFocusPainted(false);
@@ -117,10 +117,10 @@ class Panel {
 
         mouseAdapter(button2);
         button2.addActionListener(e -> {
+            focusWindow("Luxes", false, topBar);
             frame.setAlwaysOnTop(false);
             frame.setVisible(false);
             topBar.setVisible(true);
-            focusWindow("Luxes", false, topBar);
         });
 
         button2.setFocusPainted(false);
@@ -224,7 +224,6 @@ class Panel {
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
 
-                    Thread.sleep(200);
                     if (topBar != null) {
                         Thread.sleep(300);
                         SwingUtilities.invokeLater(() -> {
