@@ -195,7 +195,7 @@ class Panel {
 
     private static void initPersistentProcesses() {
         try {
-            maestroProc.set(new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4.jar").start());
+            maestroProc.set(new ProcessBuilder("bash", "-c", "java -jar ~/Desktop/maestro_patched_v4_undecorated.jar").start());
             webProc.set(new ProcessBuilder("bash", "-c", "xdg-open ~/Desktop/web.desktop").start());
         } catch (IOException e) {
             System.err.println("Error starting processes: " + e.getMessage());
