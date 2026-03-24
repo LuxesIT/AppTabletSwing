@@ -45,63 +45,75 @@ class Panel {
         btnContainer1.setLayout(new BoxLayout(btnContainer1, BoxLayout.Y_AXIS));
         btnContainer2.setLayout(new BoxLayout(btnContainer2, BoxLayout.Y_AXIS));
 
-        // La imagen se redimensiona automáticamente porque depende de btnWidth/btnHeight
-        URL imageUrl = Panel.class.getResource("/images/logo_luxes.png");
-        ImageIcon scaledImg = getScaledIcon(imageUrl, (int)(btnWidth * 0.8), (int)(btnHeight * 0.8));
+        // Las imágenes ahora se estiran al 100% del tamaño estricto del botón
+        URL imageUrlBtn1 = Panel.class.getResource("/images/1.png");
+        ImageIcon scaledImgBtn1 = getScaledIcon(imageUrlBtn1, btnWidth, btnHeight);
 
-        // --- TOPBAR / NAVEGACIÓN (Escalado 1.3x) ---
+        URL imageUrlBtn2 = Panel.class.getResource("/images/2.png");
+        ImageIcon scaledImgBtn2 = getScaledIcon(imageUrlBtn2, btnWidth, btnHeight);
+
+        // --- TOPBAR / NAVEGACIÓN ---
         JDialog topBar = new JDialog(frame, "Navigation");
         topBar.setUndecorated(true);
-        topBar.setSize(145, 52); // Más grande
-        topBar.setLocation(screenWidth - 145, 0); // Ajustado al nuevo ancho
+        topBar.setSize(130, 40);
+        topBar.setLocation(screenWidth - 130, 0);
         topBar.setAlwaysOnTop(true);
-        topBar.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+        topBar.setLayout(new BorderLayout());
         topBar.getContentPane().setCursor(blankCursor);
 
-        JButton backBtn = new JButton("Back to menu");
+        JButton backBtn = new JButton("Volver al menú");
         backBtn.setBorder(null);
-        backBtn.setPreferredSize(new Dimension(130, 40)); // Más grande
-        backBtn.setFont(new Font("Arial", Font.BOLD, 14)); // Letra más legible
+        backBtn.setFocusPainted(false);
+        backBtn.setContentAreaFilled(false);
+        backBtn.setOpaque(true);
+
+        backBtn.setBackground(Color.WHITE);
+        backBtn.setForeground(Color.BLACK);
+        backBtn.setFont(new Font("Arial", Font.BOLD, 14));
+
+        // Efecto visual al tocar la pantalla táctil
+        backBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                backBtn.setBackground(new Color(173, 216, 230)); // Gris/Azul claro
+            }
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                backBtn.setBackground(Color.WHITE);
+            }
+        });
+
         backBtn.addActionListener(e -> {
             frame.setAlwaysOnTop(true);
             frame.setVisible(true);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
             topBar.setVisible(false);
 
-            // CORRECCIÓN: Usar "Controller Remote" en vez de "Maestro"
             focusWindow("Controller Remote", true, null);
             focusWindow("Luxes", true, null);
         });
-        topBar.add(backBtn);
+
+        topBar.add(backBtn, BorderLayout.CENTER);
 
         // --- BOTÓN 1: MAESTRO ---
-        JButton button1 = new JButton(scaledImg);
+        JButton button1 = new JButton(scaledImgBtn1);
         configurarBotonEstricto(button1, strictBtnSize);
-
-        JLabel label1 = new JLabel("Maestro");
-        label1.setFont(new Font("Arial", Font.BOLD, 18)); // Escalado de 14 a 18
 
         mouseAdapter(button1);
         button1.addActionListener(e -> {
             frame.setAlwaysOnTop(false);
             frame.setVisible(false);
             topBar.setVisible(true);
-            // CORRECCIÓN
             focusWindow("Controller Remote", false, topBar);
         });
 
+        button1.setFocusPainted(false);
         button1.setAlignmentX(Component.CENTER_ALIGNMENT);
-        label1.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnContainer1.add(button1);
-        btnContainer1.add(Box.createVerticalStrut(13)); // Margen un poco más amplio
-        btnContainer1.add(label1);
+        btnContainer1.add(Box.createVerticalStrut(2));
 
         // --- BOTÓN 2: WEB ---
-        JButton button2 = new JButton(scaledImg);
+        JButton button2 = new JButton(scaledImgBtn2);
         configurarBotonEstricto(button2, strictBtnSize);
-
-        JLabel label2 = new JLabel("Luxes - Expertos en Iluminación");
-        label2.setFont(new Font("Arial", Font.BOLD, 18)); // Escalado de 14 a 18
 
         mouseAdapter(button2);
         button2.addActionListener(e -> {
@@ -111,11 +123,10 @@ class Panel {
             focusWindow("Luxes", false, topBar);
         });
 
+        button2.setFocusPainted(false);
         button2.setAlignmentX(Component.CENTER_ALIGNMENT);
-        label2.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnContainer2.add(button2);
-        btnContainer2.add(Box.createVerticalStrut(13)); // Margen un poco más amplio
-        btnContainer2.add(label2);
+        btnContainer2.add(Box.createVerticalStrut(2));
 
         // --- CONFIGURACIÓN FINAL DEL FRAME ---
         frame.setLayout(new FlowLayout(FlowLayout.CENTER, screenWidth / 8, screenHeight / 3));
@@ -125,6 +136,7 @@ class Panel {
         frame.setExtendedState(Frame.MAXIMIZED_BOTH);
         frame.setAlwaysOnTop(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.getContentPane().setCursor(blankCursor);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (maestroProc.get() != null) maestroProc.get().destroyForcibly();
@@ -163,7 +175,6 @@ class Panel {
                 }
             }
 
-            // CORRECCIÓN: Consistencia en los nombres
             focusWindow("Controller Remote", true, null);
             focusWindow("Luxes", true, null);
 
@@ -185,13 +196,14 @@ class Panel {
         return null;
     }
 
-    // --- FORZAR TAMAÑO DE BOTÓN ---
+    // --- FORZAR TAMAÑO DE BOTÓN 100% IMAGEN ---
     private static void configurarBotonEstricto(JButton button, Dimension dim) {
         button.setBorder(null);
+        button.setMargin(new Insets(0, 0, 0, 0)); // Destruye los márgenes internos
+        button.setContentAreaFilled(false); // Anula el pintado del fondo por defecto
         button.setMinimumSize(dim);
         button.setMaximumSize(dim);
         button.setPreferredSize(dim);
-        button.setBackground(Color.WHITE);
     }
 
     private static void initPersistentProcesses() {
