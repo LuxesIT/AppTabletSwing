@@ -221,8 +221,8 @@ class Panel {
                 if (hide) {
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "add,hidden").start().waitFor();
                 } else {
-                    new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
+                    new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
 
                     if (topBar != null) {
                         Thread.sleep(300);
