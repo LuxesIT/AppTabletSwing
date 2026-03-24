@@ -45,37 +45,46 @@ class Panel {
         btnContainer1.setLayout(new BoxLayout(btnContainer1, BoxLayout.Y_AXIS));
         btnContainer2.setLayout(new BoxLayout(btnContainer2, BoxLayout.Y_AXIS));
 
-        // Las imágenes se estiran al 100% del tamaño estricto del botón
+        // Las imágenes se estiran al 100%
         URL imageUrlBtn1 = Panel.class.getResource("/images/1.png");
         ImageIcon scaledImgBtn1 = getScaledIcon(imageUrlBtn1, btnWidth, btnHeight);
 
         URL imageUrlBtn2 = Panel.class.getResource("/images/2.png");
         ImageIcon scaledImgBtn2 = getScaledIcon(imageUrlBtn2, btnWidth, btnHeight);
 
-        // --- TOPBAR / NAVEGACIÓN ---
+        // --- TOPBAR / NAVEGACIÓN (Escudo Invisible) ---
         JDialog topBar = new JDialog(frame, "Navigation");
         topBar.setUndecorated(true);
-        topBar.setSize(130, 40);
-        topBar.setLocation(screenWidth - 130, 0);
+        // Ocupa todo el ancho de la pantalla y le damos 50px de alto para tapar bien las pestañas
+        topBar.setSize(screenWidth, 50);
+        topBar.setLocation(0, 0);
         topBar.setAlwaysOnTop(true);
 
+        // Hacemos que la ventana en sí sea transparente para el sistema
+        topBar.setBackground(new Color(0, 0, 0, 0));
         topBar.setLayout(new BorderLayout());
         topBar.getContentPane().setCursor(blankCursor);
+
+        // ESCUDO: Este panel se traga los clics para que no lleguen a la app de abajo
+        JPanel clickBlocker = new JPanel();
+        // Alpha de 1/255: Invisible a la vista, pero X11 lo trata como un muro sólido
+        clickBlocker.setBackground(new Color(0, 0, 0, 1));
+        clickBlocker.addMouseListener(new java.awt.event.MouseAdapter() {}); // Absorbe los toques
 
         JButton backBtn = new JButton("Volver al menú");
         backBtn.setBorder(null);
         backBtn.setFocusPainted(false);
         backBtn.setContentAreaFilled(false);
         backBtn.setOpaque(true);
+        backBtn.setPreferredSize(new Dimension(150, 50)); // Dimensionamos el botón
 
         backBtn.setBackground(Color.WHITE);
         backBtn.setForeground(Color.BLACK);
         backBtn.setFont(new Font("Arial", Font.BOLD, 14));
 
-        // Efecto visual al tocar la pantalla táctil
         backBtn.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mousePressed(java.awt.event.MouseEvent e) {
-                backBtn.setBackground(new Color(173, 216, 230)); // Gris/Azul claro
+                backBtn.setBackground(new Color(173, 216, 230));
             }
             public void mouseReleased(java.awt.event.MouseEvent e) {
                 backBtn.setBackground(Color.WHITE);
@@ -83,18 +92,18 @@ class Panel {
         });
 
         backBtn.addActionListener(e -> {
-            // El botón de volver sube el menú inmediatamente
             frame.setAlwaysOnTop(true);
             frame.setVisible(true);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
             topBar.setVisible(false);
 
-            // Pasamos null para topBar y mainFrame porque solo estamos ocultando ventanas de fondo
             focusWindow("Controller Remote", true, null, null);
             focusWindow("Luxes", true, null, null);
         });
 
-        topBar.add(backBtn, BorderLayout.CENTER);
+        // Ensamblamos la barra: El escudo al centro (ocupa todo el espacio sobrante) y el botón a la derecha
+        topBar.add(clickBlocker, BorderLayout.CENTER);
+        topBar.add(backBtn, BorderLayout.EAST);
 
         // --- BOTÓN 1: MAESTRO ---
         JButton button1 = new JButton(scaledImgBtn1);
@@ -102,7 +111,6 @@ class Panel {
 
         mouseAdapter(button1);
         button1.addActionListener(e -> {
-            // Delegamos TODO a focusWindow, pasándole el topBar y el frame principal
             focusWindow("Controller Remote", false, topBar, frame);
         });
 
@@ -117,7 +125,6 @@ class Panel {
 
         mouseAdapter(button2);
         button2.addActionListener(e -> {
-            // Delegamos TODO a focusWindow, pasándole el topBar y el frame principal
             focusWindow("Luxes", false, topBar, frame);
         });
 
@@ -197,8 +204,8 @@ class Panel {
     // --- FORZAR TAMAÑO DE BOTÓN 100% IMAGEN ---
     private static void configurarBotonEstricto(JButton button, Dimension dim) {
         button.setBorder(null);
-        button.setMargin(new Insets(0, 0, 0, 0)); // Destruye los márgenes internos
-        button.setContentAreaFilled(false); // Anula el pintado del fondo por defecto
+        button.setMargin(new Insets(0, 0, 0, 0));
+        button.setContentAreaFilled(false);
         button.setMinimumSize(dim);
         button.setMaximumSize(dim);
         button.setPreferredSize(dim);
@@ -223,10 +230,8 @@ class Panel {
                     new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
 
-                    // Esperamos 400ms a que Linux levante la ventana gráfica (especialmente útil para la web pesada)
                     Thread.sleep(400);
 
-                    // AHORA ocultamos el menú principal y mostramos el botón de la esquina
                     SwingUtilities.invokeLater(() -> {
                         if (mainFrame != null) {
                             mainFrame.setAlwaysOnTop(false);
