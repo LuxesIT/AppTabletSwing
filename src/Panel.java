@@ -183,7 +183,6 @@ class Panel {
 
             focusWindow("Controller Remote", true, null, null);
             focusWindow("Luxes", true, null, null);
-            setWindowFullscreen("Luxes");
 
             SwingUtilities.invokeLater(() -> {
                 loadingScreen.dispose();
@@ -231,8 +230,8 @@ class Panel {
                 if (hide) {
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "add,hidden").start().waitFor();
                 } else {
-                    new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
                     new ProcessBuilder("wmctrl", "-r", title, "-b", "remove,hidden").start().waitFor();
+                    new ProcessBuilder("wmctrl", "-a", title).start().waitFor();
                     if ("Luxes".equalsIgnoreCase(title)) {
                         setWindowFullscreen(title);
                     }
