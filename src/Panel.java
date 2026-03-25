@@ -229,24 +229,10 @@ class Panel {
     // --- REDIMENSIONADO DE IMAGEN ---
     private static ImageIcon getScaledIcon(URL imageUrl, int width, int height) {
         if (imageUrl != null) {
-            try {
-                BufferedImage original = ImageIO.read(imageUrl);
-                if (original == null) return null;
-
-                BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2 = scaled.createGraphics();
-                try {
-                    g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                    g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.drawImage(original, 0, 0, width, height, null);
-                } finally {
-                    g2.dispose();
-                }
-                return new ImageIcon(scaled);
-            } catch (IOException e) {
-                System.err.println("Error loading image resource: " + imageUrl + " -> " + e.getMessage());
-            }
+            ImageIcon original = new ImageIcon(imageUrl);
+            Image img = original.getImage();
+            Image scaled = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaled);
         }
         return null;
     }
