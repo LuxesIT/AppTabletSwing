@@ -70,7 +70,7 @@ class Panel {
         JDialog backOverlay = new JDialog((Frame)null, "BackOverlay");
         backOverlay.setUndecorated(true);
         backOverlay.setSize(170, 60);
-        backOverlay.setLocation(10, screenHeight - 70);
+        backOverlay.setLocation(0, screenHeight - 50);
         backOverlay.setAlwaysOnTop(true);
         backOverlay.setBackground(new Color(0, 0, 0, 0));
         backOverlay.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
