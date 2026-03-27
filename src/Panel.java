@@ -132,7 +132,7 @@ class Panel {
         restartBtn.setFocusPainted(false);
 
         // Coordenadas manuales: X=20, Y=20, Ancho=160, Alto=40
-        restartBtn.setBounds(20, 20, 160, 40);
+        restartBtn.setBounds(20, 20, 200, 40);
 
         restartBtn.addActionListener(e -> {
             JDialog loading = createLoadingScreen(frame, screenSize);
