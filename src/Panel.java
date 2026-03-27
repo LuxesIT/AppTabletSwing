@@ -226,13 +226,26 @@ class Panel {
         }).start();
     }
 
-    // --- REDIMENSIONADO DE IMAGEN ---
+    // --- REDIMENSIONADO DE IMAGEN (100% SÍNCRONO Y SEGURO) ---
     private static ImageIcon getScaledIcon(URL imageUrl, int width, int height) {
         if (imageUrl != null) {
-            ImageIcon original = new ImageIcon(imageUrl);
-            Image img = original.getImage();
-            Image scaled = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-            return new ImageIcon(scaled);
+            try {
+                // 1. ImageIO lee la imagen obligando a Java a esperar a que termine
+                BufferedImage original = ImageIO.read(imageUrl);
+
+                // 2. Creamos un "lienzo" en blanco con el tamaño estricto
+                BufferedImage resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+                // 3. Usamos la aceleración gráfica para dibujar la original sobre el lienzo
+                Graphics2D g2d = resized.createGraphics();
+                g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2d.drawImage(original, 0, 0, width, height, null);
+                g2d.dispose(); // Liberamos la memoria gráfica
+
+                return new ImageIcon(resized);
+            } catch (IOException e) {
+                System.err.println("Error crítico cargando imagen " + imageUrl + ": " + e.getMessage());
+            }
         }
         return null;
     }
